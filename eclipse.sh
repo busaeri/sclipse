@@ -1,3 +1,5 @@
+menimpan ke ethereum_private_key.txt
+ node bin/cli.js -k "$ethereum_private_key"
 #!/bin/bash
 
 export RED='\033[0;31m'
@@ -19,46 +21,59 @@ execute_and_prompt() {
     echo -e "${GREEN}Done.${NC}"
 }
 
+# Install Rust
 echo -e "${YELLOW}Installing Rust...${NC}"
-echo
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 echo -e "${GREEN}Rust installed: $(rustc --version)${NC}"
 echo
 
+# Remove existing Node.js
 echo -e "${YELLOW}Removing Node.js...${NC}"
-echo
 sudo apt-get remove -y nodejs
 echo
 
-echo -e "${YELLOW}Installing NVM and Node.js LTS...${NC}"
-echo
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash && export NVM_DIR="/usr/local/share/nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"; [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"; source ~/.bashrc; nvm install --lts; nvm use --lts
+# Install Node.js LTS directly
+echo -e "${YELLOW}Installing Node.js LTS...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
 echo -e "${GREEN}Node.js installed: $(node -v)${NC}"
 echo
 
-echo -e "${YELLOW}Cloning repository and installing npm dependencies...${NC}"
-echo
-git clone https://github.com/Eclipse-Laboratories-Inc/testnet-deposit
-cd testnet-deposit
-npm install
+# Install Yarn globally using sudo
+echo -e "${YELLOW}Installing Yarn...${NC}"
+sudo npm install -g yarn
+echo -e "${GREEN}Yarn installed: $(yarn -v)${NC}"
 echo
 
-echo -e "${YELLOW}Installing Solana CLI...${NC}"
+# Cloning repository and installing npm dependencies
+echo -e "${YELLOW}Cloning repository and installing npm dependencies...${NC}"
+git clone https://github.com/Eclipse-Laboratories-Inc/eclipse-deposit.git
+cd eclipse-deposit
+
+# Clear Yarn cache
+yarn cache clean
+
+# Install dependencies with verbose output
+echo -e "${YELLOW}Installing dependencies with Yarn (verbose mode)...${NC}"
+yarn install --verbose
 echo
+
+# Install Solana CLI
+echo -e "${YELLOW}Installing Solana CLI...${NC}"
 sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 echo -e "${GREEN}Solana CLI installed: $(solana --version)${NC}"
 echo
 
+# Generating new Solana keypair
 echo -e "${YELLOW}Generating new Solana keypair...${NC}"
-echo
 solana-keygen new -o ~/my-wallet.json
 echo
-echo -e "${YELLOW}Save these mnemonic phrases in safe Place.If there will any Airdrop in future, you will be eligible from this wallet so save it${NC}"
+echo -e "${YELLOW}Save these mnemonic phrases in a safe place. If there will be any airdrop in the future, you will be eligible from this wallet so save it.${NC}"
 echo
 
-read -p "Enter your mneomic phrase: " mnemonic
+mnemonic=$(prompt "Enter your mnemonic phrase: ")
 echo
 
 cat << EOF > secrets.json
@@ -75,12 +90,11 @@ const mnemonicWallet = HDNodeWallet.fromPhrase(seedPhrase);
 console.log();
 console.log('ETHEREUM PRIVATE KEY:', mnemonicWallet.privateKey);
 console.log();
-console.log('​​SEND SEPOLIA ETH TO THIS ADDRESS:', mnemonicWallet.address);
+console.log('SEND SEPOLIA ETH TO THIS ADDRESS:', mnemonicWallet.address);
 EOF
 
 if ! npm list ethers &>/dev/null; then
   echo "ethers.js not found. Installing..."
-  echo
   npm install ethers
   echo
 fi
@@ -88,35 +102,32 @@ fi
 node derive-wallet.js
 echo
 
+# Configuring Solana CLI
 echo -e "${YELLOW}Configuring Solana CLI...${NC}"
-echo
 solana config set --url https://testnet.dev2.eclipsenetwork.xyz
 solana config set --keypair ~/my-wallet.json
-echo
 echo -e "${GREEN}Solana Address: $(solana address)${NC}"
 echo
 
-if [ -d "testnet-deposit" ]; then
-    execute_and_prompt "Removing testnet-deposit Folder..." "rm -rf testnet-deposit"
+# Removing eclipse-deposit Folder if it exists
+if [ -d "eclipse-deposit" ]; then
+    execute_and_prompt "Removing eclipse-deposit Folder..." "rm -rf eclipse-deposit"
 fi
 
-read -p "Enter your Solana address: " solana_address
-read -p "Enter your Ethereum Private Key: " ethereum_private_key
-read -p "Enter the number of times to repeat Transaction (4-5 tx Recommended): " repeat_count
+solana_address=$(prompt "Enter your Solana address: ")
+ethereum_private_key=$(prompt "Enter your Ethereum Private Key: ")
+repeat_count=$(prompt "Enter the number of times to repeat Transaction (4-5 tx Recommended): ")
 gas_limit="4000000"
 echo
 
 for ((i=1; i<=repeat_count; i++)); do
     echo -e "${YELLOW}Running Bridge Script (Tx $i)...${NC}"
-    echo
-    node testnet-deposit/bin/cli.js -k "$ethereum_private_key" -d "$solana_address" -a 0.002 --sepolia
+    node bin/cli.js -k "$ethereum_private_key" -d "$solana_address" -a 0.002 --sepolia
     echo
     sleep 3
 done
 
-echo -e "${RED}It will take 4 mins, Don't do anything, Just Wait${RESET}"
-echo
-
+echo -e "${RED}It will take 4 mins, Don't do anything, Just Wait${NC}"
 sleep 240
 
 execute_and_prompt "Creating token..." "spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
