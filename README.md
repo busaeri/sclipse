@@ -1,7 +1,5 @@
 ## Installation
 
-https://github.com/busaeri/sclipse/assets/161211651/fd6feb5f-fb9c-406a-904d-8e382e7ff47f
-
 - Visit : [Codespace](https://github.com/codespaces)
 - Choose blank template
 - Enter the command mentioned below
