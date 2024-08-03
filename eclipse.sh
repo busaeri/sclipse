@@ -90,7 +90,7 @@ echo
 
 echo -e "${YELLOW}Configuring Solana CLI...${NC}"
 echo
-solana config set --url https://testnet.dev2.eclipsenetwork.xyz/
+solana config set --url https://staging-rpc.dev2.eclipsenetwork.xyz
 solana config set --keypair ~/my-wallet.json
 echo
 echo -e "${GREEN}Solana Address: $(solana address)${NC}"
