@@ -109,7 +109,7 @@ echo
 for ((i=1; i<=repeat_count; i++)); do
     echo -e "${YELLOW}Running Bridge Script (Tx $i)...${NC}"
     echo
-    node deposit.js "$solana_address" 0x11b8db6bb77ad8cb9af09d0867bb6b92477dd68e "$gas_limit" "$ethereum_private_key" https://1rpc.io/sepolia
+    node bin/cli.js -k "$ethereum_private_key" -d "$solana_address" -a 0.002 --sepolia
     echo
     sleep 3
 done
